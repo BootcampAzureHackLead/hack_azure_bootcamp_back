@@ -103,6 +103,8 @@ contenedor privado y el rol `Storage Blob Data Reader`.
 El workflow [deploy.yml](.github/workflows/deploy.yml) valida el backend y, al
 hacer push a `main`, despliega la infraestructura Bicep y la aplicación en
 Azure App Service. También se puede ejecutar manualmente desde GitHub Actions.
+Usa secretos y variables del repositorio, por lo que no es necesario crear un
+GitHub Environment llamado `production`.
 
 Usa autenticación OIDC; no se guardan passwords, connection strings ni perfiles
 de publicación en el repositorio. La persona administradora de Azure debe:

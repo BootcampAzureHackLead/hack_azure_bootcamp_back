@@ -47,7 +47,6 @@ jobs:
     name: Deploy infrastructure and app
     needs: validate
     runs-on: ubuntu-latest
-    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4
