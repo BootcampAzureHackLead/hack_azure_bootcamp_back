@@ -85,6 +85,10 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
           name: 'FRONTEND_ORIGIN'
           value: frontendOrigin
         }
+        {
+          name: 'SCM_DO_BUILD_DURING_DEPLOYMENT'
+          value: 'true'
+        }
       ]
     }
   }

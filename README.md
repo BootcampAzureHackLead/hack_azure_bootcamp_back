@@ -97,3 +97,36 @@ Frontend -> Backend (Azure App Service) -> identidad administrada
 El Bicep crea el plan App Service F1, la aplicación Linux con Python 3.12, la
 identidad administrada asignada por el usuario, la cuenta StorageV2, el
 contenedor privado y el rol `Storage Blob Data Reader`.
+
+## Pipeline de despliegue
+
+El workflow [deploy.yml](.github/workflows/deploy.yml) valida el backend y, al
+hacer push a `main`, despliega la infraestructura Bicep y la aplicación en
+Azure App Service. También se puede ejecutar manualmente desde GitHub Actions.
+
+Usa autenticación OIDC; no se guardan passwords, connection strings ni perfiles
+de publicación en el repositorio. La persona administradora de Azure debe:
+
+1. Crear una aplicación de Microsoft Entra ID con una credencial federada para
+   este repositorio y la rama `main`.
+2. Darle permisos para desplegar en el Resource Group.
+3. Configurar estos **GitHub Actions secrets**:
+
+   ```text
+   AZURE_CLIENT_ID
+   AZURE_TENANT_ID
+   AZURE_SUBSCRIPTION_ID
+   ```
+
+4. Configurar estas **GitHub Actions variables**:
+
+   ```text
+   AZURE_RESOURCE_GROUP
+   AZURE_APP_NAME
+   AZURE_STORAGE_ACCOUNT_NAME
+   FRONTEND_ORIGIN
+   ```
+
+`AZURE_CLIENT_ID` es la aplicación usada por el pipeline para desplegar. Es
+distinta de la identidad administrada del App Service, que solo recibe
+`Storage Blob Data Reader` mediante Bicep.
