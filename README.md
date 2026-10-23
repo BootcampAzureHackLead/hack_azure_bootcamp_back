@@ -1,8 +1,9 @@
-# Landing page con Azure Blob Storage
+# Backend de promociones con Azure Blob Storage
 
-MVP de la hackathon: una landing de ropa sirve una promoción desde un Blob
-privado usando `DefaultAzureCredential` e identidad administrada. No se usan
-connection strings ni claves de Storage.
+Backend API para que un frontend consuma una promoción almacenada en un Blob
+privado. La aplicación usa `DefaultAzureCredential` e identidad administrada.
+No se usan connection strings ni claves de Storage. El catálogo y la landing
+pertenecen al frontend y no están incluidos en este repositorio.
 
 ## Ejecutar localmente
 
@@ -12,12 +13,48 @@ source .venv/bin/activate
 pip install -r requirements.txt
 az login
 export STORAGE_ACCOUNT_NAME=<cuenta-de-storage>
+export FRONTEND_ORIGIN=https://<tu-frontend>
 flask --app app run --debug
 ```
 
 La identidad local autenticada con `az login` necesita el rol `Storage Blob Data
 Reader` sobre la cuenta. Para una prueba rápida también se pueden usar
 `az login` y `az account set --subscription <id>`.
+
+## API
+
+### `GET /api/promotion`
+
+Devuelve la promoción actual leída desde `mensajes/mensaje.txt`:
+
+```json
+{
+  "message": "¡30% de descuento en la nueva colección!"
+}
+```
+
+Cuando Blob Storage no está disponible, responde con HTTP `503`:
+
+```json
+{
+  "error": "Promotion unavailable"
+}
+```
+
+### `GET /health`
+
+Endpoint para comprobar que el proceso está activo:
+
+```json
+{
+  "status": "ok"
+}
+```
+
+El frontend debe consumir `GET /api/promotion` y pintar `message` en su banner.
+Configura `FRONTEND_ORIGIN` con el origen exacto del frontend para permitir
+peticiones CORS. Si frontend y backend comparten origen, esta variable no es
+necesaria.
 
 ## Desplegar infraestructura
 
@@ -47,16 +84,51 @@ az storage blob upload \
   --overwrite
 ```
 
-Después de cambiar `mensaje.txt`, recarga la URL del App Service para ver la
-promoción actualizada.
+Después de cambiar `mensaje.txt`, el siguiente consumo de
+`GET /api/promotion` devolverá la promoción actualizada.
 
 ## Arquitectura
 
 ```text
-Navegador -> Azure App Service -> identidad administrada
-          -> contenedor privado mensajes/mensaje.txt
+Frontend -> Backend (Azure App Service) -> identidad administrada
+         -> contenedor privado mensajes/mensaje.txt
 ```
 
 El Bicep crea el plan App Service F1, la aplicación Linux con Python 3.12, la
 identidad administrada asignada por el usuario, la cuenta StorageV2, el
 contenedor privado y el rol `Storage Blob Data Reader`.
+
+## Pipeline de despliegue
+
+El workflow [deploy.yml](.github/workflows/deploy.yml) valida el backend y, al
+hacer push a `main`, despliega la infraestructura Bicep y la aplicación en
+Azure App Service. También se puede ejecutar manualmente desde GitHub Actions.
+Usa secretos y variables del repositorio, por lo que no es necesario crear un
+GitHub Environment llamado `production`.
+
+Usa autenticación OIDC; no se guardan passwords, connection strings ni perfiles
+de publicación en el repositorio. La persona administradora de Azure debe:
+
+1. Crear una aplicación de Microsoft Entra ID con una credencial federada para
+   este repositorio y la rama `main`.
+2. Darle permisos para desplegar en el Resource Group.
+3. Configurar estos **GitHub Actions secrets**:
+
+   ```text
+   AZURE_CLIENT_ID
+   AZURE_TENANT_ID
+   AZURE_SUBSCRIPTION_ID
+   ```
+
+4. Configurar estas **GitHub Actions variables**:
+
+   ```text
+   AZURE_RESOURCE_GROUP
+   AZURE_APP_NAME
+   AZURE_STORAGE_ACCOUNT_NAME
+   FRONTEND_ORIGIN
+   ```
+
+`AZURE_CLIENT_ID` es la aplicación usada por el pipeline para desplegar. Es
+distinta de la identidad administrada del App Service, que solo recibe
+`Storage Blob Data Reader` mediante Bicep.
