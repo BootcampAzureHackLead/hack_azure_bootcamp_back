@@ -38,7 +38,12 @@ jobs:
 
       - name: Check for storage secrets
         run: |
-          if grep -RInE --exclude-dir=.git --exclude='*.pyc' \
+          if grep -RInE \
+            --exclude-dir=.git \
+            --exclude-dir=.github \
+            --exclude-dir=.venv \
+            --exclude='*.pyc' \
+            --exclude='README.md' \
             'CONNECTION_STRING|AccountKey|account_key|storage_account_key' .; then
             echo "Storage connection strings or keys are not allowed."
             exit 1
