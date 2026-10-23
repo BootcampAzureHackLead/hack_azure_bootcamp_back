@@ -2,6 +2,7 @@ param location string = resourceGroup().location
 param appName string
 param storageAccountName string
 param containerName string = 'mensajes'
+param frontendOrigin string = ''
 
 var planName = '${appName}-plan'
 var identityName = '${appName}-identity'
@@ -79,6 +80,10 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
         {
           name: 'BLOB_NAME'
           value: 'mensaje.txt'
+        }
+        {
+          name: 'FRONTEND_ORIGIN'
+          value: frontendOrigin
         }
       ]
     }
